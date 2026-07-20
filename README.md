@@ -163,6 +163,14 @@ Or double-click:
 start_client.bat
 ```
 
+To manually put an already downloaded file or folder onto the Windows clipboard for testing:
+
+```powershell
+C:\python\python.exe .\copy_to_clipboard.py ".\ClipAnywhereDownloads\some-downloaded-folder"
+```
+
+Then paste with `Ctrl+V` in File Explorer.
+
 ## Current Limits
 
 This MVP is intentionally simple:

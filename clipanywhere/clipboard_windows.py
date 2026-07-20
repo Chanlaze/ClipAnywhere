@@ -166,6 +166,15 @@ def set_preferred_drop_effect() -> None:
 
 def set_clipboard_hglobal(format_id: int, data: bytes) -> None:
     kernel32 = ctypes.windll.kernel32
+    kernel32.GlobalAlloc.argtypes = [ctypes.c_uint, ctypes.c_size_t]
+    kernel32.GlobalAlloc.restype = ctypes.c_void_p
+    kernel32.GlobalLock.argtypes = [ctypes.c_void_p]
+    kernel32.GlobalLock.restype = ctypes.c_void_p
+    kernel32.GlobalUnlock.argtypes = [ctypes.c_void_p]
+    kernel32.GlobalUnlock.restype = ctypes.c_int
+    kernel32.GlobalFree.argtypes = [ctypes.c_void_p]
+    kernel32.GlobalFree.restype = ctypes.c_void_p
+
     handle = kernel32.GlobalAlloc(GMEM_MOVEABLE, len(data))
     if not handle:
         raise OSError("GlobalAlloc failed")
