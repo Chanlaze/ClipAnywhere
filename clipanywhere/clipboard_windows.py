@@ -5,6 +5,7 @@ import tempfile
 import time
 import zipfile
 import ctypes
+from ctypes import wintypes
 from pathlib import Path
 
 try:
@@ -24,6 +25,7 @@ class ClipboardUnavailable(RuntimeError):
 
 GMEM_MOVEABLE = 0x0002
 DROPEFFECT_COPY = 1
+PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 
 
 def open_clipboard_with_retry(retries: int = 40, delay_seconds: float = 0.05) -> None:
@@ -44,6 +46,56 @@ def ensure_available() -> None:
         raise ClipboardUnavailable(
             "Windows clipboard file support requires pywin32. Run: pip install pywin32"
         ) from IMPORT_ERROR
+
+
+def get_clipboard_lock_owner() -> str:
+    try:
+        user32 = ctypes.windll.user32
+        user32.GetOpenClipboardWindow.restype = wintypes.HWND
+        owner_window = user32.GetOpenClipboardWindow()
+        if not owner_window:
+            return "unknown process"
+
+        process_id = wintypes.DWORD()
+        user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+        user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+        user32.GetWindowThreadProcessId(owner_window, ctypes.byref(process_id))
+        if not process_id.value:
+            return f"window handle {owner_window}"
+
+        process_path = query_process_path(process_id.value)
+        if process_path:
+            return f"{Path(process_path).name} (pid {process_id.value})"
+        return f"pid {process_id.value}"
+    except Exception:
+        return "unknown process"
+
+
+def query_process_path(process_id: int) -> str:
+    kernel32 = ctypes.windll.kernel32
+    kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+    kernel32.OpenProcess.restype = wintypes.HANDLE
+    kernel32.QueryFullProcessImageNameW.argtypes = [
+        wintypes.HANDLE,
+        wintypes.DWORD,
+        wintypes.LPWSTR,
+        ctypes.POINTER(wintypes.DWORD),
+    ]
+    kernel32.QueryFullProcessImageNameW.restype = wintypes.BOOL
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel32.CloseHandle.restype = wintypes.BOOL
+
+    handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, process_id)
+    if not handle:
+        return ""
+    try:
+        buffer = ctypes.create_unicode_buffer(32768)
+        size = wintypes.DWORD(len(buffer))
+        if kernel32.QueryFullProcessImageNameW(handle, 0, buffer, ctypes.byref(size)):
+            return buffer.value
+        return ""
+    finally:
+        kernel32.CloseHandle(handle)
 
 
 def get_text() -> str | None:

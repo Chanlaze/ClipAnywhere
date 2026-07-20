@@ -24,6 +24,7 @@ from .clipboard_windows import (
     copy_files_to_clipboard,
     extract_zip_to_downloads,
     get_file_paths,
+    get_clipboard_lock_owner,
     get_text,
     set_text,
     zip_paths,
@@ -40,6 +41,8 @@ class Client:
         self.download_dir = Path(config.get("download_dir", "ClipAnywhereDownloads"))
         self.last_seen_id = 0
         self.last_local_digest = ""
+        self.last_clipboard_busy_log = 0.0
+        self.clipboard_busy_log_seconds = float(config.get("clipboard_busy_log_seconds", 30))
         self.proxy_authorization = ""
         self.install_proxy()
 
@@ -171,7 +174,11 @@ class Client:
             except HTTPError as exc:
                 self.log(f"HTTP error: {exc.code} {exc.reason}")
             except ClipboardUnavailable as exc:
-                self.log(f"Clipboard busy, retrying: {exc}")
+                now = time.time()
+                if now - self.last_clipboard_busy_log >= self.clipboard_busy_log_seconds:
+                    owner = get_clipboard_lock_owner()
+                    self.log(f"Clipboard busy, retrying: {exc}; locked by {owner}")
+                    self.last_clipboard_busy_log = now
             except Exception as exc:
                 self.log(f"Sync error: {exc}")
             time.sleep(self.poll_seconds)
