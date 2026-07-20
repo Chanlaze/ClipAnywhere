@@ -151,6 +151,18 @@ Then run:
 python -m clipanywhere.client --config client_config.json
 ```
 
+If your Windows PC uses an embedded/custom Python that cannot find the `clipanywhere` module, run the included launcher instead:
+
+```powershell
+C:\python\python.exe .\start_client.py --config .\client_config.json
+```
+
+Or double-click:
+
+```text
+start_client.bat
+```
+
 ## Current Limits
 
 This MVP is intentionally simple:
