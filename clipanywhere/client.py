@@ -43,6 +43,10 @@ class Client:
         self.proxy_authorization = ""
         self.install_proxy()
 
+    def log(self, message: str) -> None:
+        stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        print(f"[{stamp}] {message}", flush=True)
+
     def install_proxy(self) -> None:
         proxy = self.config.get("proxy", {})
         if not proxy.get("enabled"):
@@ -99,6 +103,7 @@ class Client:
             existing_paths = [p for p in paths if p.exists()]
             digest = digest_paths(existing_paths)
             if existing_paths and digest != self.last_local_digest:
+                self.log(f"Files/Folder being sync: uploading {describe_paths(existing_paths)}")
                 name, body = zip_paths(existing_paths)
                 result = self.post_bytes(
                     "push/files",
@@ -111,6 +116,7 @@ class Client:
                 )
                 self.mark_seen(result.get("item"))
                 self.last_local_digest = digest
+                self.log("Files/Folder sync uploaded")
             return
 
         text = get_text()
@@ -118,6 +124,7 @@ class Client:
             return
         digest = sha256_bytes(text.encode("utf-8"))
         if digest != self.last_local_digest:
+            self.log(f"Text being sync: uploading {len(text)} characters")
             result = self.request_json(
                 "POST",
                 "push/text",
@@ -125,6 +132,7 @@ class Client:
             )
             self.mark_seen(result.get("item"))
             self.last_local_digest = digest
+            self.log("Text sync uploaded")
 
     def pull_remote_clipboard(self) -> None:
         item = self.request_json("GET", "latest").get("item")
@@ -134,13 +142,18 @@ class Client:
             self.mark_seen(item)
             return
         if item["kind"] == "text":
+            self.log(f"Text being sync: downloading from {item['source_device']}")
             set_text(item["text"])
             self.last_local_digest = sha256_bytes(item["text"].encode("utf-8"))
+            self.log(f"Text placed on clipboard: {len(item['text'])} characters")
         elif item["kind"] == "files":
+            self.log(f"Files/Folder being sync: downloading from {item['source_device']}")
             body = self.request_bytes(item["download_url"])
             targets = extract_zip_to_downloads(body, self.download_dir)
+            self.log(f"Files/Folder downloaded: {describe_paths(targets)}")
             copy_files_to_clipboard(targets)
             self.last_local_digest = item["sha256"]
+            self.log("Files/Folder placed on clipboard, ready for Ctrl+V")
         self.mark_seen(item)
 
     def mark_seen(self, item: dict[str, Any] | None) -> None:
@@ -148,17 +161,19 @@ class Client:
             self.last_seen_id = max(self.last_seen_id, int(item["id"]))
 
     def run(self) -> None:
-        print(f"ClipAnywhere client running as {self.device_name}")
+        self.log(f"ClipAnywhere client running as {self.device_name}")
+        self.log(f"Server: {self.server_url.rstrip('/')}")
+        self.log("Status: waiting for clipboard changes")
         while True:
             try:
                 self.pull_remote_clipboard()
                 self.push_local_clipboard()
             except HTTPError as exc:
-                print(f"HTTP error: {exc.code} {exc.reason}")
+                self.log(f"HTTP error: {exc.code} {exc.reason}")
             except ClipboardUnavailable as exc:
-                print(f"Clipboard busy, retrying: {exc}")
+                self.log(f"Clipboard busy, retrying: {exc}")
             except Exception as exc:
-                print(f"Sync error: {exc}")
+                self.log(f"Sync error: {exc}")
             time.sleep(self.poll_seconds)
 
 
@@ -192,6 +207,23 @@ def add_directory_to_digest(h: Any, archive_name: Path) -> None:
     h.update(b"\0")
     h.update(str(archive_name).replace("\\", "/").encode("utf-8"))
     h.update(b"\0")
+
+
+def describe_paths(paths: list[Path]) -> str:
+    if not paths:
+        return "0 items"
+    if len(paths) == 1:
+        path = paths[0]
+        kind = "folder" if path.is_dir() else "file"
+        return f"1 {kind} ({path.name})"
+    file_count = sum(1 for path in paths if path.is_file())
+    folder_count = sum(1 for path in paths if path.is_dir())
+    parts = []
+    if file_count:
+        parts.append(f"{file_count} files")
+    if folder_count:
+        parts.append(f"{folder_count} folders")
+    return ", ".join(parts)
 
 
 def main() -> None:

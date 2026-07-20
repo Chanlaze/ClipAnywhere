@@ -163,6 +163,15 @@ Or double-click:
 start_client.bat
 ```
 
+The client window prints clipboard status messages such as:
+
+```text
+Text being sync: uploading 42 characters
+Files/Folder being sync: uploading 1 folder (Reports)
+Files/Folder downloaded: 1 folder (Reports)
+Files/Folder placed on clipboard, ready for Ctrl+V
+```
+
 To manually put an already downloaded file or folder onto the Windows clipboard for testing:
 
 ```powershell
