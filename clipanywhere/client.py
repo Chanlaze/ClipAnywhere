@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import time
@@ -38,6 +39,7 @@ class Client:
         self.download_dir = Path(config.get("download_dir", "ClipAnywhereDownloads"))
         self.last_seen_id = 0
         self.last_local_digest = ""
+        self.proxy_authorization = ""
         self.install_proxy()
 
     def install_proxy(self) -> None:
@@ -49,6 +51,9 @@ class Client:
         username = proxy.get("username")
         password = proxy.get("password")
         if username and password:
+            raw_credentials = f"{username}:{password}".encode("utf-8")
+            encoded_credentials = base64.b64encode(raw_credentials).decode("ascii")
+            self.proxy_authorization = f"Basic {encoded_credentials}"
             proxy_auth = ProxyBasicAuthHandler()
             proxy_auth.add_password(None, proxy_url, username, password)
             handlers.append(proxy_auth)
@@ -59,6 +64,8 @@ class Client:
 
     def headers(self, extra: dict[str, str] | None = None) -> dict[str, str]:
         headers = {"Authorization": f"Bearer {self.config['token']}"}
+        if self.proxy_authorization:
+            headers["Proxy-Authorization"] = self.proxy_authorization
         if extra:
             headers.update(extra)
         return headers
