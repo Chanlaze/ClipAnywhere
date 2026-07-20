@@ -152,7 +152,7 @@ class Client:
             targets = extract_zip_to_downloads(body, self.download_dir)
             self.log(f"Files/Folder downloaded: {describe_paths(targets)}")
             copy_files_to_clipboard(targets)
-            self.last_local_digest = item["sha256"]
+            self.last_local_digest = digest_paths(targets)
             self.log("Files/Folder placed on clipboard, ready for Ctrl+V")
         self.mark_seen(item)
 
