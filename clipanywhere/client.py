@@ -137,8 +137,8 @@ class Client:
             self.last_local_digest = sha256_bytes(item["text"].encode("utf-8"))
         elif item["kind"] == "files":
             body = self.request_bytes(item["download_url"])
-            target = extract_zip_to_downloads(body, self.download_dir)
-            copy_files_to_clipboard([target])
+            targets = extract_zip_to_downloads(body, self.download_dir)
+            copy_files_to_clipboard(targets)
             self.last_local_digest = item["sha256"]
         self.mark_seen(item)
 
@@ -163,7 +163,10 @@ def digest_paths(paths: list[Path]) -> str:
     h = hashlib.sha256()
     for path in sorted(paths, key=lambda p: str(p).lower()):
         if path.is_dir():
+            add_directory_to_digest(h, path.relative_to(path.parent))
             for child in sorted(path.rglob("*"), key=lambda p: str(p).lower()):
+                if child.is_dir():
+                    add_directory_to_digest(h, child.relative_to(path.parent))
                 if child.is_file():
                     add_file_to_digest(h, child, child.relative_to(path.parent))
         elif path.is_file():
@@ -178,6 +181,13 @@ def add_file_to_digest(h: Any, path: Path, archive_name: Path) -> None:
     h.update(str(stat.st_size).encode("ascii"))
     h.update(b"\0")
     h.update(str(stat.st_mtime_ns).encode("ascii"))
+    h.update(b"\0")
+
+
+def add_directory_to_digest(h: Any, archive_name: Path) -> None:
+    h.update(b"dir")
+    h.update(b"\0")
+    h.update(str(archive_name).replace("\\", "/").encode("utf-8"))
     h.update(b"\0")
 
 
