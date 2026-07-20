@@ -1,0 +1,13 @@
+{
+  "server_url": "http://chanlaze.ddns.net/clipanywhere",
+  "token": "change-this-long-random-token",
+  "device_name": "home-pc",
+  "poll_seconds": 2,
+  "download_dir": "ClipAnywhereDownloads",
+  "proxy": {
+    "enabled": false,
+    "url": "",
+    "username": "",
+    "password": ""
+  }
+}

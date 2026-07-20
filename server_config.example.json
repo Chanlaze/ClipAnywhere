@@ -1,0 +1,8 @@
+{
+  "host": "127.0.0.1",
+  "port": 8765,
+  "base_path": "/clipanywhere",
+  "token": "change-this-long-random-token",
+  "data_dir": "clipanywhere_data",
+  "max_upload_mb": 512
+}

@@ -1,0 +1,167 @@
+# ClipAnywhere
+
+Python clipboard sync for several PCs, including text and copied files.
+
+## Network Shape
+
+Your office PC can only use HTTP port 80 through:
+
+```text
+http://autoproxy:8088/
+```
+
+Your NAS already owns public port 80 for a website, so run the Python server on an internal NAS port, then reverse-proxy one URL path from the existing website:
+
+```text
+http://chanlaze.ddns.net/clipanywhere/
+```
+
+Example flow:
+
+```text
+Client PC -> office proxy -> http://chanlaze.ddns.net:80/clipanywhere -> NAS web server -> Python server localhost:8765
+```
+
+## Files
+
+- `clipanywhere/server.py`: NAS sync server.
+- `clipanywhere/client.py`: Windows client sync loop.
+- `clipanywhere/clipboard_windows.py`: Windows clipboard text/file access.
+- `server_config.example.json`: server config.
+- `server_config.docker.example.json`: NAS Docker server config.
+- `Dockerfile` and `docker-compose.yml`: NAS Docker packaging.
+- `client_config.example.json`: office PC client config using the proxy.
+- `client_config.direct.example.json`: client config for PCs without a proxy.
+
+## Install
+
+Python 3.10+ is recommended.
+
+On clients:
+
+```powershell
+pip install -r requirements.txt
+```
+
+On NAS, the server only uses Python standard library.
+
+## Server
+
+Copy `server_config.example.json` to `server_config.json` and edit the token.
+
+```powershell
+python -m clipanywhere.server --config server_config.json
+```
+
+By default it listens on `127.0.0.1:8765`.
+
+## NAS Docker Server
+
+If your Synology NAS has Container Manager or Docker, this is the easiest setup.
+
+Copy the project folder to the NAS, for example:
+
+```bash
+/volume1/docker/ClipAnywhere
+```
+
+Create the Docker config:
+
+```bash
+cd /volume1/docker/ClipAnywhere
+cp server_config.docker.example.json server_config.json
+```
+
+Edit `server_config.json` and replace:
+
+```json
+"token": "change-this-long-random-token"
+```
+
+with a long private token. Use the same token on every client PC.
+
+Build and start the container:
+
+```bash
+docker compose up -d --build
+```
+
+Check status:
+
+```bash
+docker compose ps
+docker logs clipanywhere
+```
+
+The container listens inside Docker on `0.0.0.0:8765`, but `docker-compose.yml` publishes it only on the NAS loopback address:
+
+```text
+127.0.0.1:8765
+```
+
+That means the Synology reverse proxy can reach it, but the Python server port is not directly open to your LAN or the internet.
+
+To update after copying newer files to the NAS:
+
+```bash
+docker compose up -d --build
+```
+
+## Reverse Proxy
+
+Configure your existing NAS website to proxy:
+
+```text
+/clipanywhere/ -> http://127.0.0.1:8765/
+```
+
+Important headers:
+
+```text
+X-Forwarded-Prefix: /clipanywhere
+X-Forwarded-Proto: http
+```
+
+Synology DSM usually lets you do this through **Login Portal / Application Portal -> Reverse Proxy**:
+
+- Source protocol: `HTTP`
+- Source hostname: `chanlaze.ddns.net`
+- Source port: `80`
+- Source path: `/clipanywhere`
+- Destination protocol: `HTTP`
+- Destination hostname: `127.0.0.1`
+- Destination port: `8765`
+
+Keep the Python server bound to `127.0.0.1` if it runs on the NAS itself. That keeps it private behind the NAS web server.
+
+## Client
+
+Copy `client_config.example.json` to `client_config.json` and edit:
+
+- `server_url`: `http://chanlaze.ddns.net/clipanywhere`
+- `token`: same as server
+- `device_name`: unique per PC
+- `proxy.username` and `proxy.password` if needed
+
+For PCs that connect directly, copy `client_config.direct.example.json` instead.
+
+Then run:
+
+```powershell
+python -m clipanywhere.client --config client_config.json
+```
+
+## Current Limits
+
+This MVP is intentionally simple:
+
+- Last writer wins.
+- Files are uploaded as a zip archive.
+- The client polls instead of keeping a permanent websocket open, which works better with restrictive office proxies.
+- Clipboard file sync is Windows-focused via `pywin32`.
+
+## Security Notes
+
+- Use a long random token. Anyone with the token can read and write the shared clipboard.
+- The office constraint means this is plain HTTP on port 80 unless your proxy also permits HTTPS on port 443.
+- Do not expose the Python server port directly to the internet; expose only the reverse-proxied `/clipanywhere` path.

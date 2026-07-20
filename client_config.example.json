@@ -1,0 +1,14 @@
+{
+  "server_url": "http://chanlaze.ddns.net/clipanywhere",
+  "token": "change-this-long-random-token",
+  "device_name": "office-pc",
+  "poll_seconds": 2,
+  "download_dir": "ClipAnywhereDownloads",
+  "proxy": {
+    "enabled": true,
+    "url": "http://autoproxy:8088/",
+    "username": "",
+    "password": ""
+  }
+}
+

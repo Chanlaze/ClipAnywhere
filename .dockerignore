@@ -1,0 +1,11 @@
+.git
+.agents
+.codex
+__pycache__/
+*.py[cod]
+*.sqlite3
+clipanywhere_data/
+ClipAnywhereDownloads/
+client_config.json
+server_config.json
+
