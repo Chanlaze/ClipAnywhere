@@ -2,10 +2,10 @@ services:
   clipanywhere:
     build: .
     container_name: clipanywhere
+    user: "0:0"
     restart: unless-stopped
     ports:
       - "127.0.0.1:8765:8765"
     volumes:
       - ./server_config.json:/config/server_config.json:ro
       - ./clipanywhere_data:/data
-
