@@ -7,7 +7,7 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent
 sys.path.insert(0, str(project_root))
 
-from clipanywhere.clipboard_windows import copy_files_to_clipboard
+from clipanywhere.clipboard import copy_files_to_clipboard
 
 
 def main() -> None:
@@ -29,4 +29,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -19,15 +19,14 @@ from urllib.request import (
     urlopen,
 )
 
-from .clipboard_windows import (
+from .archive import extract_zip_to_downloads, zip_paths
+from .clipboard import (
     ClipboardUnavailable,
     copy_files_to_clipboard,
-    extract_zip_to_downloads,
     get_file_paths,
     get_clipboard_lock_owner,
     get_text,
     set_text,
-    zip_paths,
 )
 from .common import load_json, sha256_bytes
 

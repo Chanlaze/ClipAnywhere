@@ -25,23 +25,27 @@ Client PC -> office proxy -> http://chanlaze.ddns.net:80/clipanywhere -> NAS web
 ## Files
 
 - `clipanywhere/server.py`: NAS sync server.
-- `clipanywhere/client.py`: Windows client sync loop.
+- `clipanywhere/client.py`: Windows/macOS client sync loop.
 - `clipanywhere/clipboard_windows.py`: Windows clipboard text/file access.
+- `clipanywhere/clipboard_macos.py`: macOS clipboard text/file access.
 - `server_config.example.json`: server config.
 - `server_config.docker.example.json`: NAS Docker server config.
 - `Dockerfile` and `docker-compose.yml`: NAS Docker packaging.
 - `client_config.example.json`: office PC client config using the proxy.
 - `client_config.direct.example.json`: client config for PCs without a proxy.
+- `client_config.macos.example.json`: macOS client config.
 
 ## Install
 
 Python 3.10+ is recommended.
 
-On clients:
+On Windows clients:
 
 ```powershell
 pip install -r requirements.txt
 ```
+
+On macOS clients, no extra pip packages are needed for the current client.
 
 On NAS, the server only uses Python standard library.
 
@@ -180,6 +184,29 @@ C:\python\python.exe .\copy_to_clipboard.py ".\ClipAnywhereDownloads\some-downlo
 
 Then paste with `Ctrl+V` in File Explorer.
 
+## macOS Client
+
+On the Mac, copy `client_config.macos.example.json` to `client_config.json` and edit:
+
+- `server_url`: `http://chanlazenas.ddns.net`
+- `token`: same as server
+- `device_name`: unique name, such as `macbook`
+
+Run:
+
+```bash
+python3 start_client.py --config client_config.json
+```
+
+You can also run the included launcher:
+
+```bash
+chmod +x start_client.command
+./start_client.command
+```
+
+Text uses `pbcopy`/`pbpaste`. File and folder clipboard support uses macOS AppleScript/Finder pasteboard data, so copied files/folders from Finder can sync and downloaded files/folders are placed back onto the Mac clipboard for paste.
+
 ## Current Limits
 
 This MVP is intentionally simple:
@@ -187,7 +214,7 @@ This MVP is intentionally simple:
 - Last writer wins.
 - Files are uploaded as a zip archive.
 - The client polls instead of keeping a permanent websocket open, which works better with restrictive office proxies.
-- Clipboard file sync is Windows-focused via `pywin32`.
+- Clipboard file sync supports Windows via `pywin32` and macOS via built-in pasteboard commands.
 
 ## Security Notes
 
