@@ -20,6 +20,7 @@ from urllib.request import (
 )
 
 from .clipboard_windows import (
+    ClipboardUnavailable,
     copy_files_to_clipboard,
     extract_zip_to_downloads,
     get_file_paths,
@@ -154,6 +155,8 @@ class Client:
                 self.push_local_clipboard()
             except HTTPError as exc:
                 print(f"HTTP error: {exc.code} {exc.reason}")
+            except ClipboardUnavailable as exc:
+                print(f"Clipboard busy, retrying: {exc}")
             except Exception as exc:
                 print(f"Sync error: {exc}")
             time.sleep(self.poll_seconds)

@@ -21,16 +21,16 @@ class ClipboardUnavailable(RuntimeError):
     pass
 
 
-def open_clipboard_with_retry(retries: int = 8, delay_seconds: float = 0.05) -> None:
+def open_clipboard_with_retry(retries: int = 40, delay_seconds: float = 0.05) -> None:
     ensure_available()
     last_error: Exception | None = None
-    for _ in range(retries):
+    for attempt in range(retries):
         try:
             win32clipboard.OpenClipboard()
             return
         except Exception as exc:
             last_error = exc
-            time.sleep(delay_seconds)
+            time.sleep(min(delay_seconds * (attempt + 1), 0.5))
     raise ClipboardUnavailable("Windows clipboard is busy") from last_error
 
 
