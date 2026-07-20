@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import time
 import zipfile
+import ctypes
 from pathlib import Path
 
 try:
@@ -19,6 +20,10 @@ else:
 
 class ClipboardUnavailable(RuntimeError):
     pass
+
+
+GMEM_MOVEABLE = 0x0002
+DROPEFFECT_COPY = 1
 
 
 def open_clipboard_with_retry(retries: int = 40, delay_seconds: float = 0.05) -> None:
@@ -128,10 +133,8 @@ def copy_files_to_clipboard(paths: list[Path]) -> None:
         open_clipboard_with_retry()
         opened = True
         win32clipboard.EmptyClipboard()
-        win32clipboard.SetClipboardData(
-            win32con.CF_HDROP,
-            tuple(str(p.resolve()) for p in paths),
-        )
+        set_file_drop_data(paths)
+        set_preferred_drop_effect()
     except Exception:
         fallback_text = "\r\n".join(str(p) for p in paths)
     finally:
@@ -139,3 +142,43 @@ def copy_files_to_clipboard(paths: list[Path]) -> None:
             win32clipboard.CloseClipboard()
     if fallback_text is not None:
         set_text(fallback_text)
+
+
+def set_file_drop_data(paths: list[Path]) -> None:
+    file_list = "\0".join(str(p.resolve()) for p in paths) + "\0\0"
+    encoded_files = file_list.encode("utf-16le")
+
+    # DROPFILES: DWORD pFiles, POINT pt, BOOL fNC, BOOL fWide.
+    dropfiles_header = (
+        (20).to_bytes(4, "little")
+        + (0).to_bytes(4, "little")
+        + (0).to_bytes(4, "little")
+        + (0).to_bytes(4, "little")
+        + (1).to_bytes(4, "little")
+    )
+    set_clipboard_hglobal(win32con.CF_HDROP, dropfiles_header + encoded_files)
+
+
+def set_preferred_drop_effect() -> None:
+    format_id = win32clipboard.RegisterClipboardFormat("Preferred DropEffect")
+    set_clipboard_hglobal(format_id, DROPEFFECT_COPY.to_bytes(4, "little"))
+
+
+def set_clipboard_hglobal(format_id: int, data: bytes) -> None:
+    kernel32 = ctypes.windll.kernel32
+    handle = kernel32.GlobalAlloc(GMEM_MOVEABLE, len(data))
+    if not handle:
+        raise OSError("GlobalAlloc failed")
+    locked = kernel32.GlobalLock(handle)
+    if not locked:
+        kernel32.GlobalFree(handle)
+        raise OSError("GlobalLock failed")
+    try:
+        ctypes.memmove(locked, data, len(data))
+    finally:
+        kernel32.GlobalUnlock(handle)
+    try:
+        win32clipboard.SetClipboardData(format_id, handle)
+    except Exception:
+        kernel32.GlobalFree(handle)
+        raise
