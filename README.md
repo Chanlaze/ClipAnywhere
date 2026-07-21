@@ -170,14 +170,14 @@ start_client.bat
 The client window prints clipboard status messages such as:
 
 ```text
-Status: press Alt+C to ClipAnywhere-copy and sync
+Status: press Ctrl+Alt+C to ClipAnywhere-copy and sync
 Text being sync: uploading 42 characters
 Files/Folder being sync: uploading 1 folder (Reports)
 Files/Folder downloaded: 1 folder (Reports)
 Files/Folder placed on clipboard, ready for Ctrl+V
 ```
 
-On Windows, normal `Ctrl+C` stays local and does not sync. Use `Alt+C` when you want ClipAnywhere to copy the current selection and sync it to other PCs.
+On Windows, normal `Ctrl+C` stays local and does not sync. Use `Ctrl+Alt+C` when you want ClipAnywhere to copy the current selection and sync it to other PCs.
 
 To manually put an already downloaded file or folder onto the Windows clipboard for testing:
 
@@ -210,7 +210,7 @@ chmod +x start_client.command
 
 Text uses `pbcopy`/`pbpaste`. File and folder clipboard support uses macOS AppleScript/Finder pasteboard data, so copied files/folders from Finder can sync and downloaded files/folders are placed back onto the Mac clipboard for paste.
 
-The global `Alt+C` hotkey is currently implemented for Windows. The macOS client can receive synced clipboard data, and macOS send support still requires starting from clipboard content already copied on that Mac.
+The global `Ctrl+Alt+C` hotkey is currently implemented for Windows. The macOS client can receive synced clipboard data, and macOS send support still requires starting from clipboard content already copied on that Mac.
 
 ## Current Limits
 

@@ -25,6 +25,7 @@ DROPEFFECT_COPY = 1
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 CLIPANYWHERE_HOTKEY_ID = 0xCA10
 MOD_ALT = 0x0001
+MOD_CONTROL = 0x0002
 PM_REMOVE = 0x0001
 VK_C = 0x43
 VK_CONTROL = 0x11
@@ -54,15 +55,15 @@ def ensure_available() -> None:
 
 
 def hotkey_description() -> str:
-    return "Alt+C"
+    return "Ctrl+Alt+C"
 
 
 def register_sync_hotkey() -> None:
     user32 = ctypes.windll.user32
     user32.RegisterHotKey.argtypes = [wintypes.HWND, ctypes.c_int, wintypes.UINT, wintypes.UINT]
     user32.RegisterHotKey.restype = wintypes.BOOL
-    if not user32.RegisterHotKey(None, CLIPANYWHERE_HOTKEY_ID, MOD_ALT, VK_C):
-        raise ClipboardUnavailable("Cannot register Alt+C hotkey. Another app may already use it.")
+    if not user32.RegisterHotKey(None, CLIPANYWHERE_HOTKEY_ID, MOD_CONTROL | MOD_ALT, VK_C):
+        raise ClipboardUnavailable("Cannot register Ctrl+Alt+C hotkey. Another app may already use it.")
 
 
 def sync_hotkey_pressed() -> bool:
@@ -104,8 +105,9 @@ def wait_for_hotkey_release(timeout_seconds: float = 1.0) -> None:
     deadline = time.time() + timeout_seconds
     while time.time() < deadline:
         alt_down = bool(user32.GetAsyncKeyState(VK_MENU) & 0x8000)
+        control_down = bool(user32.GetAsyncKeyState(VK_CONTROL) & 0x8000)
         c_down = bool(user32.GetAsyncKeyState(VK_C) & 0x8000)
-        if not alt_down and not c_down:
+        if not alt_down and not control_down and not c_down:
             return
         time.sleep(0.02)
 

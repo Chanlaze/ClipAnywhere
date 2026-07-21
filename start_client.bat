@@ -3,6 +3,6 @@ title ClipAnywhere Clipboard Sync
 cd /d "%~dp0"
 echo Starting ClipAnywhere Clipboard Sync...
 echo Status messages will appear below.
-echo Use Alt+C to copy and sync. Ctrl+C stays local.
+echo Use Ctrl+Alt+C to copy and sync. Ctrl+C stays local.
 C:\python\python.exe "%~dp0start_client.py" --config "%~dp0client_config.json"
 pause
