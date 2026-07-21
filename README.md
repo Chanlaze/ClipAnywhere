@@ -145,6 +145,9 @@ Copy `client_config.example.json` to `client_config.json` and edit:
 - `server_url`: `http://chanlaze.ddns.net/clipanywhere`
 - `token`: same as server
 - `device_name`: unique per PC
+- `cleanup_downloads_enabled`: automatically remove old downloaded sync batches
+- `download_retention_days`: keep downloaded sync batches for this many days
+- `download_max_items`: keep only this many recent downloaded sync batches
 - `proxy.username` and `proxy.password` if needed
 
 For PCs that connect directly, copy `client_config.direct.example.json` instead.
@@ -206,6 +209,8 @@ Files/Folder placed on clipboard, ready for Ctrl+V
 ```
 
 On Windows, normal `Ctrl+C` stays local and does not sync. Use `Ctrl+Alt+C` when you want ClipAnywhere to copy the current selection and sync it to other PCs.
+
+ClipAnywhere cannot reliably detect when Windows Explorer has finished pasting files from the clipboard. Instead, the client automatically cleans old downloaded sync batches from `ClipAnywhereDownloads`. By default it keeps the newest 20 batches and removes batches older than 7 days. The batch currently placed on the clipboard is always kept.
 
 To manually put an already downloaded file or folder onto the Windows clipboard for testing:
 
