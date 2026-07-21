@@ -13,6 +13,7 @@ PYTHON = Path(r"C:\python\python.exe")
 LOG_PATH = PROJECT_ROOT / "clipanywhere_client.log"
 TRAY_LOG_PATH = PROJECT_ROOT / "clipanywhere_tray.log"
 CONFIG_PATH = PROJECT_ROOT / "client_config.json"
+ICON_PATH = PROJECT_ROOT / "assets" / "clipanywhere.ico"
 
 
 def log_tray(message: str) -> None:
@@ -34,6 +35,9 @@ except Exception:
 WM_TRAY = win32con.WM_USER + 20
 MENU_OPEN_LOG = 1001
 MENU_EXIT = 1002
+IMAGE_ICON = 1
+LR_LOADFROMFILE = 0x0010
+LR_DEFAULTSIZE = 0x0040
 
 
 class TrayApp:
@@ -99,7 +103,7 @@ class TrayApp:
         log_tray(f"Tray window created, hwnd={self.hwnd}")
 
     def add_tray_icon(self) -> None:
-        icon = win32gui.LoadIcon(0, win32con.IDI_APPLICATION)
+        icon = self.load_tray_icon()
         nid = (
             self.hwnd,
             0,
@@ -109,6 +113,24 @@ class TrayApp:
             "ClipAnywhere - Ctrl+Alt+C to sync",
         )
         win32gui.Shell_NotifyIcon(win32gui.NIM_ADD, nid)
+
+    def load_tray_icon(self) -> int:
+        if ICON_PATH.exists():
+            try:
+                icon = win32gui.LoadImage(
+                    0,
+                    str(ICON_PATH),
+                    IMAGE_ICON,
+                    0,
+                    0,
+                    LR_LOADFROMFILE | LR_DEFAULTSIZE,
+                )
+                log_tray(f"Loaded tray icon: {ICON_PATH}")
+                return icon
+            except Exception:
+                log_tray("Failed to load custom tray icon:")
+                log_tray(traceback.format_exc())
+        return win32gui.LoadIcon(0, win32con.IDI_APPLICATION)
 
     def remove_tray_icon(self) -> None:
         if self.hwnd:

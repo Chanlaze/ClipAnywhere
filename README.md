@@ -173,6 +173,12 @@ To run hidden in the Windows system tray, double-click:
 start_client_tray.bat
 ```
 
+The tray launcher uses the project icon at:
+
+```text
+assets/clipanywhere.ico
+```
+
 The tray launcher writes client output to:
 
 ```text
