@@ -28,6 +28,7 @@ MOD_ALT = 0x0001
 PM_REMOVE = 0x0001
 VK_C = 0x43
 VK_CONTROL = 0x11
+VK_MENU = 0x12
 KEYEVENTF_KEYUP = 0x0002
 WM_HOTKEY = 0x0312
 
@@ -82,14 +83,31 @@ def sync_hotkey_pressed() -> bool:
 
 
 def prepare_clipanywhere_copy() -> None:
+    wait_for_hotkey_release()
     user32 = ctypes.windll.user32
     user32.keybd_event.argtypes = [wintypes.BYTE, wintypes.BYTE, wintypes.DWORD, wintypes.ULONG]
     user32.keybd_event.restype = None
+    user32.keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0)
+    time.sleep(0.05)
     user32.keybd_event(VK_CONTROL, 0, 0, 0)
     user32.keybd_event(VK_C, 0, 0, 0)
+    time.sleep(0.05)
     user32.keybd_event(VK_C, 0, KEYEVENTF_KEYUP, 0)
     user32.keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0)
-    time.sleep(0.25)
+    time.sleep(0.5)
+
+
+def wait_for_hotkey_release(timeout_seconds: float = 1.0) -> None:
+    user32 = ctypes.windll.user32
+    user32.GetAsyncKeyState.argtypes = [ctypes.c_int]
+    user32.GetAsyncKeyState.restype = ctypes.c_short
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        alt_down = bool(user32.GetAsyncKeyState(VK_MENU) & 0x8000)
+        c_down = bool(user32.GetAsyncKeyState(VK_C) & 0x8000)
+        if not alt_down and not c_down:
+            return
+        time.sleep(0.02)
 
 
 def get_clipboard_lock_owner() -> str:
