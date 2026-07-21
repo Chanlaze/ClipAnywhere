@@ -115,20 +115,29 @@ class TrayApp:
             win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, (self.hwnd, 0))
 
     def on_tray(self, hwnd: int, msg: int, wparam: int, lparam: int) -> int:
-        if lparam in (
-            win32con.WM_RBUTTONUP,
-            win32con.WM_CONTEXTMENU,
-            win32con.WM_LBUTTONDBLCLK,
-        ):
-            log_tray(f"Tray menu requested, lparam={lparam}")
-            self.show_menu()
+        try:
+            if lparam in (
+                win32con.WM_RBUTTONUP,
+                win32con.WM_CONTEXTMENU,
+                win32con.WM_LBUTTONDBLCLK,
+            ):
+                log_tray(f"Tray menu requested, lparam={lparam}")
+                self.show_menu()
+        except Exception:
+            log_tray("Tray callback failed:")
+            log_tray(traceback.format_exc())
         return 0
 
     def show_menu(self) -> None:
+        log_tray("Creating tray menu")
         menu = win32gui.CreatePopupMenu()
+        log_tray(f"Popup menu handle={menu}")
         win32gui.AppendMenu(menu, win32con.MF_STRING, MENU_OPEN_LOG, "Open log")
+        log_tray("Added Open log menu item")
         win32gui.AppendMenu(menu, win32con.MF_SEPARATOR, 0, None)
+        log_tray("Added menu separator")
         win32gui.AppendMenu(menu, win32con.MF_STRING, MENU_EXIT, "Exit ClipAnywhere")
+        log_tray("Added Exit ClipAnywhere menu item")
         pos = win32gui.GetCursorPos()
         log_tray(f"Showing tray menu at {pos[0]},{pos[1]}")
         win32gui.SetForegroundWindow(self.hwnd)
