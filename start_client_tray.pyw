@@ -134,7 +134,7 @@ class TrayApp:
         log_tray(f"Popup menu handle={menu}")
         win32gui.AppendMenu(menu, win32con.MF_STRING, MENU_OPEN_LOG, "Open log")
         log_tray("Added Open log menu item")
-        win32gui.AppendMenu(menu, win32con.MF_SEPARATOR, 0, None)
+        win32gui.AppendMenu(menu, win32con.MF_SEPARATOR, 0, "")
         log_tray("Added menu separator")
         win32gui.AppendMenu(menu, win32con.MF_STRING, MENU_EXIT, "Exit ClipAnywhere")
         log_tray("Added Exit ClipAnywhere menu item")
