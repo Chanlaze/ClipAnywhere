@@ -26,7 +26,11 @@ from .clipboard import (
     get_file_paths,
     get_clipboard_lock_owner,
     get_text,
+    hotkey_description,
+    prepare_clipanywhere_copy,
+    register_sync_hotkey,
     set_text,
+    sync_hotkey_pressed,
 )
 from .common import load_json, sha256_bytes
 
@@ -99,7 +103,7 @@ class Client:
         with urlopen(req, timeout=180) as res:
             return json.loads(res.read().decode("utf-8"))
 
-    def push_local_clipboard(self) -> None:
+    def push_local_clipboard(self, *, force_log: bool = False) -> None:
         paths = get_file_paths()
         if paths:
             existing_paths = [p for p in paths if p.exists()]
@@ -119,10 +123,14 @@ class Client:
                 self.mark_seen(result.get("item"))
                 self.last_local_digest = digest
                 self.log("Files/Folder sync uploaded")
+            elif force_log:
+                self.log("Files/Folder clipboard unchanged, upload skipped")
             return
 
         text = get_text()
         if text is None:
+            if force_log:
+                self.log("Clipboard has no text/files to sync")
             return
         digest = sha256_bytes(text.encode("utf-8"))
         if digest != self.last_local_digest:
@@ -135,6 +143,8 @@ class Client:
             self.mark_seen(result.get("item"))
             self.last_local_digest = digest
             self.log("Text sync uploaded")
+        elif force_log:
+            self.log("Text clipboard unchanged, upload skipped")
 
     def pull_remote_clipboard(self) -> None:
         item = self.request_json("GET", "latest").get("item")
@@ -163,13 +173,17 @@ class Client:
             self.last_seen_id = max(self.last_seen_id, int(item["id"]))
 
     def run(self) -> None:
+        register_sync_hotkey()
         self.log(f"ClipAnywhere client running as {self.device_name}")
         self.log(f"Server: {self.server_url.rstrip('/')}")
-        self.log("Status: waiting for clipboard changes")
+        self.log(f"Status: press {hotkey_description()} to ClipAnywhere-copy and sync")
         while True:
             try:
                 self.pull_remote_clipboard()
-                self.push_local_clipboard()
+                if sync_hotkey_pressed():
+                    self.log(f"{hotkey_description()} pressed: ClipAnywhere copy started")
+                    prepare_clipanywhere_copy()
+                    self.push_local_clipboard(force_log=True)
             except HTTPError as exc:
                 self.log(f"HTTP error: {exc.code} {exc.reason}")
             except ClipboardUnavailable as exc:

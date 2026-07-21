@@ -9,7 +9,11 @@ if platform.system() == "Darwin":
         get_clipboard_lock_owner,
         get_file_paths,
         get_text,
+        hotkey_description,
+        prepare_clipanywhere_copy,
+        register_sync_hotkey,
         set_text,
+        sync_hotkey_pressed,
     )
 elif platform.system() == "Windows":
     from .clipboard_windows import (
@@ -18,8 +22,11 @@ elif platform.system() == "Windows":
         get_clipboard_lock_owner,
         get_file_paths,
         get_text,
+        hotkey_description,
+        prepare_clipanywhere_copy,
+        register_sync_hotkey,
         set_text,
+        sync_hotkey_pressed,
     )
 else:
     raise RuntimeError("ClipAnywhere client supports Windows and macOS")
-

@@ -23,6 +23,13 @@ class ClipboardUnavailable(RuntimeError):
 GMEM_MOVEABLE = 0x0002
 DROPEFFECT_COPY = 1
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+CLIPANYWHERE_HOTKEY_ID = 0xCA10
+MOD_ALT = 0x0001
+PM_REMOVE = 0x0001
+VK_C = 0x43
+VK_CONTROL = 0x11
+KEYEVENTF_KEYUP = 0x0002
+WM_HOTKEY = 0x0312
 
 
 def open_clipboard_with_retry(retries: int = 40, delay_seconds: float = 0.05) -> None:
@@ -43,6 +50,46 @@ def ensure_available() -> None:
         raise ClipboardUnavailable(
             "Windows clipboard file support requires pywin32. Run: pip install pywin32"
         ) from IMPORT_ERROR
+
+
+def hotkey_description() -> str:
+    return "Alt+C"
+
+
+def register_sync_hotkey() -> None:
+    user32 = ctypes.windll.user32
+    user32.RegisterHotKey.argtypes = [wintypes.HWND, ctypes.c_int, wintypes.UINT, wintypes.UINT]
+    user32.RegisterHotKey.restype = wintypes.BOOL
+    if not user32.RegisterHotKey(None, CLIPANYWHERE_HOTKEY_ID, MOD_ALT, VK_C):
+        raise ClipboardUnavailable("Cannot register Alt+C hotkey. Another app may already use it.")
+
+
+def sync_hotkey_pressed() -> bool:
+    user32 = ctypes.windll.user32
+    msg = wintypes.MSG()
+    user32.PeekMessageW.argtypes = [
+        ctypes.POINTER(wintypes.MSG),
+        wintypes.HWND,
+        wintypes.UINT,
+        wintypes.UINT,
+        wintypes.UINT,
+    ]
+    user32.PeekMessageW.restype = wintypes.BOOL
+    while user32.PeekMessageW(ctypes.byref(msg), None, 0, 0, PM_REMOVE):
+        if msg.message == WM_HOTKEY and msg.wParam == CLIPANYWHERE_HOTKEY_ID:
+            return True
+    return False
+
+
+def prepare_clipanywhere_copy() -> None:
+    user32 = ctypes.windll.user32
+    user32.keybd_event.argtypes = [wintypes.BYTE, wintypes.BYTE, wintypes.DWORD, wintypes.ULONG]
+    user32.keybd_event.restype = None
+    user32.keybd_event(VK_CONTROL, 0, 0, 0)
+    user32.keybd_event(VK_C, 0, 0, 0)
+    user32.keybd_event(VK_C, 0, KEYEVENTF_KEYUP, 0)
+    user32.keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0)
+    time.sleep(0.25)
 
 
 def get_clipboard_lock_owner() -> str:

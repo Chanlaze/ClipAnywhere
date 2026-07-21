@@ -12,6 +12,22 @@ def get_clipboard_lock_owner() -> str:
     return "macOS pasteboard"
 
 
+def hotkey_description() -> str:
+    return "manual trigger only on macOS"
+
+
+def register_sync_hotkey() -> None:
+    return
+
+
+def sync_hotkey_pressed() -> bool:
+    return False
+
+
+def prepare_clipanywhere_copy() -> None:
+    return
+
+
 def get_text() -> str | None:
     result = run_command(["pbpaste"])
     text = result.stdout
@@ -67,4 +83,3 @@ def run_command(command: list[str], input_text: str | None = None) -> subprocess
     except subprocess.CalledProcessError as exc:
         detail = exc.stderr.strip() or exc.stdout.strip() or str(exc)
         raise ClipboardUnavailable(detail) from exc
-
