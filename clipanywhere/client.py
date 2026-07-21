@@ -4,6 +4,7 @@ import argparse
 import base64
 import hashlib
 import json
+import shutil
 import time
 from pathlib import Path
 from typing import Any
@@ -43,6 +44,9 @@ class Client:
         self.device_name = config["device_name"]
         self.poll_seconds = float(config.get("poll_seconds", 2))
         self.download_dir = Path(config.get("download_dir", "ClipAnywhereDownloads"))
+        self.cleanup_downloads_enabled = bool(config.get("cleanup_downloads_enabled", True))
+        self.download_retention_days = float(config.get("download_retention_days", 7))
+        self.download_max_items = int(config.get("download_max_items", 20))
         self.last_seen_id = 0
         self.last_local_digest = ""
         self.last_clipboard_busy_log = 0.0
@@ -167,11 +171,41 @@ class Client:
             copy_files_to_clipboard(targets)
             self.last_local_digest = digest_paths(targets)
             self.log("Files/Folder placed on clipboard, ready for Ctrl+V")
+            self.cleanup_downloads(keep_paths=targets)
         self.mark_seen(item)
 
     def mark_seen(self, item: dict[str, Any] | None) -> None:
         if item:
             self.last_seen_id = max(self.last_seen_id, int(item["id"]))
+
+    def cleanup_downloads(self, *, keep_paths: list[Path]) -> None:
+        if not self.cleanup_downloads_enabled or not self.download_dir.exists():
+            return
+
+        keep_roots = {download_batch_root(path, self.download_dir) for path in keep_paths}
+        keep_roots = {path.resolve() for path in keep_roots if path is not None}
+        now = time.time()
+        max_age_seconds = self.download_retention_days * 24 * 60 * 60
+        candidates = [
+            path
+            for path in self.download_dir.iterdir()
+            if path.name.startswith("clipboard-files-") and path.resolve() not in keep_roots
+        ]
+        candidates.sort(key=lambda path: path.stat().st_mtime, reverse=True)
+
+        removed = 0
+        for index, path in enumerate(candidates):
+            too_old = self.download_retention_days >= 0 and now - path.stat().st_mtime > max_age_seconds
+            too_many = self.download_max_items >= 0 and index >= self.download_max_items
+            if too_old or too_many:
+                try:
+                    remove_path(path)
+                except OSError as exc:
+                    self.log(f"Download cleanup skipped {path.name}: {exc}")
+                else:
+                    removed += 1
+        if removed:
+            self.log(f"Download cleanup removed {removed} old sync item(s)")
 
     def run(self) -> None:
         self.log(f"ClipAnywhere client running as {self.device_name}")
@@ -256,6 +290,23 @@ def describe_paths(paths: list[Path]) -> str:
     if folder_count:
         parts.append(f"{folder_count} folders")
     return ", ".join(parts)
+
+
+def download_batch_root(path: Path, download_dir: Path) -> Path | None:
+    try:
+        relative = path.resolve().relative_to(download_dir.resolve())
+    except ValueError:
+        return None
+    if not relative.parts:
+        return path
+    return download_dir / relative.parts[0]
+
+
+def remove_path(path: Path) -> None:
+    if path.is_dir():
+        shutil.rmtree(path)
+    else:
+        path.unlink(missing_ok=True)
 
 
 def main() -> None:
