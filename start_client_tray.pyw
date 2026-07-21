@@ -33,7 +33,6 @@ except Exception:
 
 WM_TRAY = win32con.WM_USER + 20
 MENU_OPEN_LOG = 1001
-MENU_OPEN_TRAY_LOG = 1003
 MENU_EXIT = 1002
 
 
@@ -121,8 +120,7 @@ class TrayApp:
 
     def show_menu(self) -> None:
         menu = win32gui.CreatePopupMenu()
-        win32gui.AppendMenu(menu, win32con.MF_STRING, MENU_OPEN_LOG, "Open client log")
-        win32gui.AppendMenu(menu, win32con.MF_STRING, MENU_OPEN_TRAY_LOG, "Open tray log")
+        win32gui.AppendMenu(menu, win32con.MF_STRING, MENU_OPEN_LOG, "Open log")
         win32gui.AppendMenu(menu, win32con.MF_SEPARATOR, 0, None)
         win32gui.AppendMenu(menu, win32con.MF_STRING, MENU_EXIT, "Exit ClipAnywhere")
         pos = win32gui.GetCursorPos()
@@ -136,10 +134,6 @@ class TrayApp:
             if not LOG_PATH.exists():
                 LOG_PATH.write_text("", encoding="utf-8")
             os.startfile(LOG_PATH)
-        elif command == MENU_OPEN_TRAY_LOG:
-            if not TRAY_LOG_PATH.exists():
-                TRAY_LOG_PATH.write_text("", encoding="utf-8")
-            os.startfile(TRAY_LOG_PATH)
         elif command == MENU_EXIT:
             self.exit()
         return 0
