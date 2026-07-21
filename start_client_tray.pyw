@@ -85,16 +85,17 @@ class TrayApp:
         self.hwnd = win32gui.CreateWindow(
             self.window_class,
             "ClipAnywhere",
-            0,
-            0,
-            0,
-            0,
-            0,
+            win32con.WS_OVERLAPPED,
+            -32000,
+            -32000,
+            1,
+            1,
             0,
             0,
             wc.hInstance,
             None,
         )
+        win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
         log_tray(f"Tray window created, hwnd={self.hwnd}")
 
     def add_tray_icon(self) -> None:
@@ -129,6 +130,7 @@ class TrayApp:
         win32gui.AppendMenu(menu, win32con.MF_SEPARATOR, 0, None)
         win32gui.AppendMenu(menu, win32con.MF_STRING, MENU_EXIT, "Exit ClipAnywhere")
         pos = win32gui.GetCursorPos()
+        log_tray(f"Showing tray menu at {pos[0]},{pos[1]}")
         win32gui.SetForegroundWindow(self.hwnd)
         command = win32gui.TrackPopupMenu(
             menu,
