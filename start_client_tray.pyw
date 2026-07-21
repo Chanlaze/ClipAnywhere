@@ -115,7 +115,6 @@ class TrayApp:
 
     def on_tray(self, hwnd: int, msg: int, wparam: int, lparam: int) -> int:
         if lparam in (
-            win32con.WM_RBUTTONDOWN,
             win32con.WM_RBUTTONUP,
             win32con.WM_CONTEXTMENU,
             win32con.WM_LBUTTONDBLCLK,
