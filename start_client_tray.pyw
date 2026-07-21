@@ -3,20 +3,37 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import traceback
 from pathlib import Path
-
-import win32api
-import win32con
-import win32gui
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 PYTHONW = Path(r"C:\python\pythonw.exe")
 PYTHON = Path(r"C:\python\python.exe")
 LOG_PATH = PROJECT_ROOT / "clipanywhere_client.log"
+TRAY_LOG_PATH = PROJECT_ROOT / "clipanywhere_tray.log"
 CONFIG_PATH = PROJECT_ROOT / "client_config.json"
+
+
+def log_tray(message: str) -> None:
+    with TRAY_LOG_PATH.open("a", encoding="utf-8") as log:
+        log.write(message + "\n")
+        log.flush()
+
+
+try:
+    import win32api
+    import win32con
+    import win32gui
+except Exception:
+    log_tray("Failed to import pywin32 tray modules:")
+    log_tray(traceback.format_exc())
+    raise
+
+
 WM_TRAY = win32con.WM_USER + 20
 MENU_OPEN_LOG = 1001
+MENU_OPEN_TRAY_LOG = 1003
 MENU_EXIT = 1002
 
 
@@ -27,9 +44,11 @@ class TrayApp:
         self.hwnd: int | None = None
 
     def run(self) -> None:
+        log_tray("ClipAnywhere tray launcher starting")
         self.start_client()
         self.create_window()
         self.add_tray_icon()
+        log_tray("Tray icon added. If you cannot see it, check the hidden tray icons arrow (^).")
         win32gui.PumpMessages()
 
     def start_client(self) -> None:
@@ -40,6 +59,8 @@ class TrayApp:
             "--config",
             str(CONFIG_PATH),
         ]
+        log_tray("Starting client process:")
+        log_tray(" ".join(command))
         log = LOG_PATH.open("a", encoding="utf-8")
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         self.process = subprocess.Popen(
@@ -49,6 +70,7 @@ class TrayApp:
             stderr=subprocess.STDOUT,
             creationflags=creationflags,
         )
+        log_tray(f"Client process started, pid={self.process.pid}")
 
     def create_window(self) -> None:
         message_map = {
@@ -74,6 +96,7 @@ class TrayApp:
             wc.hInstance,
             None,
         )
+        log_tray(f"Tray window created, hwnd={self.hwnd}")
 
     def add_tray_icon(self) -> None:
         icon = win32gui.LoadIcon(0, win32con.IDI_APPLICATION)
@@ -98,7 +121,8 @@ class TrayApp:
 
     def show_menu(self) -> None:
         menu = win32gui.CreatePopupMenu()
-        win32gui.AppendMenu(menu, win32con.MF_STRING, MENU_OPEN_LOG, "Open log")
+        win32gui.AppendMenu(menu, win32con.MF_STRING, MENU_OPEN_LOG, "Open client log")
+        win32gui.AppendMenu(menu, win32con.MF_STRING, MENU_OPEN_TRAY_LOG, "Open tray log")
         win32gui.AppendMenu(menu, win32con.MF_SEPARATOR, 0, None)
         win32gui.AppendMenu(menu, win32con.MF_STRING, MENU_EXIT, "Exit ClipAnywhere")
         pos = win32gui.GetCursorPos()
@@ -112,11 +136,16 @@ class TrayApp:
             if not LOG_PATH.exists():
                 LOG_PATH.write_text("", encoding="utf-8")
             os.startfile(LOG_PATH)
+        elif command == MENU_OPEN_TRAY_LOG:
+            if not TRAY_LOG_PATH.exists():
+                TRAY_LOG_PATH.write_text("", encoding="utf-8")
+            os.startfile(TRAY_LOG_PATH)
         elif command == MENU_EXIT:
             self.exit()
         return 0
 
     def on_destroy(self, hwnd: int, msg: int, wparam: int, lparam: int) -> int:
+        log_tray("Tray window destroying")
         self.remove_tray_icon()
         self.stop_client()
         win32gui.PostQuitMessage(0)
@@ -127,15 +156,21 @@ class TrayApp:
 
     def stop_client(self) -> None:
         if self.process and self.process.poll() is None:
+            log_tray(f"Stopping client process, pid={self.process.pid}")
             self.process.terminate()
             try:
                 self.process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 self.process.kill()
+                log_tray("Client process killed after timeout")
 
 
 if __name__ == "__main__":
-    if sys.platform != "win32":
-        raise SystemExit("Tray launcher is Windows-only")
-    TrayApp().run()
-
+    try:
+        if sys.platform != "win32":
+            raise SystemExit("Tray launcher is Windows-only")
+        TrayApp().run()
+    except Exception:
+        log_tray("Tray launcher crashed:")
+        log_tray(traceback.format_exc())
+        raise

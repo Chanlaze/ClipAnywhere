@@ -181,6 +181,14 @@ clipanywhere_client.log
 
 Right-click the tray icon to open the log or exit ClipAnywhere.
 
+If the tray icon does not appear, first check the hidden tray icons arrow `^` near the Windows clock. Also check:
+
+```text
+clipanywhere_tray_launch.log
+clipanywhere_tray.log
+clipanywhere_client.log
+```
+
 The client window prints clipboard status messages such as:
 
 ```text
