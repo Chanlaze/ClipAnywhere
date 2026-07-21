@@ -32,6 +32,7 @@ VK_CONTROL = 0x11
 VK_MENU = 0x12
 KEYEVENTF_KEYUP = 0x0002
 WM_HOTKEY = 0x0312
+_HOTKEY_REGISTERED = False
 
 
 def open_clipboard_with_retry(retries: int = 40, delay_seconds: float = 0.05) -> None:
@@ -59,11 +60,26 @@ def hotkey_description() -> str:
 
 
 def register_sync_hotkey() -> None:
+    global _HOTKEY_REGISTERED
+    if _HOTKEY_REGISTERED:
+        return
     user32 = ctypes.windll.user32
     user32.RegisterHotKey.argtypes = [wintypes.HWND, ctypes.c_int, wintypes.UINT, wintypes.UINT]
     user32.RegisterHotKey.restype = wintypes.BOOL
     if not user32.RegisterHotKey(None, CLIPANYWHERE_HOTKEY_ID, MOD_CONTROL | MOD_ALT, VK_C):
         raise ClipboardUnavailable("Cannot register Ctrl+Alt+C hotkey. Another app may already use it.")
+    _HOTKEY_REGISTERED = True
+
+
+def unregister_sync_hotkey() -> None:
+    global _HOTKEY_REGISTERED
+    if not _HOTKEY_REGISTERED:
+        return
+    user32 = ctypes.windll.user32
+    user32.UnregisterHotKey.argtypes = [wintypes.HWND, ctypes.c_int]
+    user32.UnregisterHotKey.restype = wintypes.BOOL
+    user32.UnregisterHotKey(None, CLIPANYWHERE_HOTKEY_ID)
+    _HOTKEY_REGISTERED = False
 
 
 def sync_hotkey_pressed() -> bool:
