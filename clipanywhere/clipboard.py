@@ -14,6 +14,7 @@ if platform.system() == "Darwin":
         register_sync_hotkey,
         set_text,
         sync_hotkey_pressed,
+        unregister_sync_hotkey,
     )
 elif platform.system() == "Windows":
     from .clipboard_windows import (
@@ -27,6 +28,7 @@ elif platform.system() == "Windows":
         register_sync_hotkey,
         set_text,
         sync_hotkey_pressed,
+        unregister_sync_hotkey,
     )
 else:
     raise RuntimeError("ClipAnywhere client supports Windows and macOS")
