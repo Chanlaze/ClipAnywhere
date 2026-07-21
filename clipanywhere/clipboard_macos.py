@@ -20,6 +20,10 @@ def register_sync_hotkey() -> None:
     return
 
 
+def unregister_sync_hotkey() -> None:
+    return
+
+
 def sync_hotkey_pressed() -> bool:
     return False
 
