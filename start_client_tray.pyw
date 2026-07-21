@@ -139,6 +139,7 @@ class TrayApp:
             self.hwnd,
             None,
         )
+        log_tray(f"Tray menu command returned: {command}")
         win32gui.PostMessage(self.hwnd, win32con.WM_NULL, 0, 0)
         win32gui.DestroyMenu(menu)
         if command:
