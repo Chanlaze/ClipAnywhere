@@ -240,6 +240,10 @@ Text uses `pbcopy`/`pbpaste`. File and folder clipboard support uses macOS Apple
 
 The global `Ctrl+Alt+C` hotkey is currently implemented for Windows. The macOS client can receive synced clipboard data, and macOS send support still requires starting from clipboard content already copied on that Mac.
 
+## Troubleshooting
+
+If the client logs `Hotkey unavailable: Cannot register Ctrl+Alt+C hotkey`, another program already owns that hotkey. Most often this means ClipAnywhere is already running from the tray plus another copy is running in PowerShell. Exit the tray icon or close the extra PowerShell client, then start ClipAnywhere again.
+
 ## Current Limits
 
 This MVP is intentionally simple:
