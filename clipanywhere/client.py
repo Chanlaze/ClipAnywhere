@@ -31,6 +31,7 @@ from .clipboard import (
     register_sync_hotkey,
     set_text,
     sync_hotkey_pressed,
+    unregister_sync_hotkey,
 )
 from .common import load_json, sha256_bytes
 
@@ -173,28 +174,39 @@ class Client:
             self.last_seen_id = max(self.last_seen_id, int(item["id"]))
 
     def run(self) -> None:
-        register_sync_hotkey()
         self.log(f"ClipAnywhere client running as {self.device_name}")
         self.log(f"Server: {self.server_url.rstrip('/')}")
-        self.log(f"Status: press {hotkey_description()} to ClipAnywhere-copy and sync")
-        while True:
-            try:
-                self.pull_remote_clipboard()
-                if sync_hotkey_pressed():
-                    self.log(f"{hotkey_description()} pressed: ClipAnywhere copy started")
-                    prepare_clipanywhere_copy()
-                    self.push_local_clipboard(force_log=True)
-            except HTTPError as exc:
-                self.log(f"HTTP error: {exc.code} {exc.reason}")
-            except ClipboardUnavailable as exc:
-                now = time.time()
-                if now - self.last_clipboard_busy_log >= self.clipboard_busy_log_seconds:
-                    owner = get_clipboard_lock_owner()
-                    self.log(f"Clipboard busy, retrying: {exc}; locked by {owner}")
-                    self.last_clipboard_busy_log = now
-            except Exception as exc:
-                self.log(f"Sync error: {exc}")
-            time.sleep(self.poll_seconds)
+        hotkey_enabled = True
+        try:
+            register_sync_hotkey()
+        except ClipboardUnavailable as exc:
+            hotkey_enabled = False
+            self.log(f"Hotkey unavailable: {exc}")
+            self.log("Receiving clipboard sync still works. Close the other ClipAnywhere copy, then restart this client.")
+        else:
+            self.log(f"Status: press {hotkey_description()} to ClipAnywhere-copy and sync")
+
+        try:
+            while True:
+                try:
+                    self.pull_remote_clipboard()
+                    if hotkey_enabled and sync_hotkey_pressed():
+                        self.log(f"{hotkey_description()} pressed: ClipAnywhere copy started")
+                        prepare_clipanywhere_copy()
+                        self.push_local_clipboard(force_log=True)
+                except HTTPError as exc:
+                    self.log(f"HTTP error: {exc.code} {exc.reason}")
+                except ClipboardUnavailable as exc:
+                    now = time.time()
+                    if now - self.last_clipboard_busy_log >= self.clipboard_busy_log_seconds:
+                        owner = get_clipboard_lock_owner()
+                        self.log(f"Clipboard busy, retrying: {exc}; locked by {owner}")
+                        self.last_clipboard_busy_log = now
+                except Exception as exc:
+                    self.log(f"Sync error: {exc}")
+                time.sleep(self.poll_seconds)
+        finally:
+            unregister_sync_hotkey()
 
 
 def digest_paths(paths: list[Path]) -> str:
