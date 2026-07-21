@@ -114,7 +114,13 @@ class TrayApp:
             win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, (self.hwnd, 0))
 
     def on_tray(self, hwnd: int, msg: int, wparam: int, lparam: int) -> int:
-        if lparam in (win32con.WM_RBUTTONUP, win32con.WM_LBUTTONDBLCLK):
+        if lparam in (
+            win32con.WM_RBUTTONDOWN,
+            win32con.WM_RBUTTONUP,
+            win32con.WM_CONTEXTMENU,
+            win32con.WM_LBUTTONDBLCLK,
+        ):
+            log_tray(f"Tray menu requested, lparam={lparam}")
             self.show_menu()
         return 0
 
@@ -125,18 +131,31 @@ class TrayApp:
         win32gui.AppendMenu(menu, win32con.MF_STRING, MENU_EXIT, "Exit ClipAnywhere")
         pos = win32gui.GetCursorPos()
         win32gui.SetForegroundWindow(self.hwnd)
-        win32gui.TrackPopupMenu(menu, win32con.TPM_LEFTALIGN, pos[0], pos[1], 0, self.hwnd, None)
+        command = win32gui.TrackPopupMenu(
+            menu,
+            win32con.TPM_LEFTALIGN | win32con.TPM_RIGHTBUTTON | win32con.TPM_RETURNCMD,
+            pos[0],
+            pos[1],
+            0,
+            self.hwnd,
+            None,
+        )
         win32gui.PostMessage(self.hwnd, win32con.WM_NULL, 0, 0)
+        win32gui.DestroyMenu(menu)
+        if command:
+            self.handle_menu_command(command)
 
     def on_command(self, hwnd: int, msg: int, wparam: int, lparam: int) -> int:
-        command = win32api.LOWORD(wparam)
+        self.handle_menu_command(win32api.LOWORD(wparam))
+        return 0
+
+    def handle_menu_command(self, command: int) -> None:
         if command == MENU_OPEN_LOG:
             if not LOG_PATH.exists():
                 LOG_PATH.write_text("", encoding="utf-8")
             os.startfile(LOG_PATH)
         elif command == MENU_EXIT:
             self.exit()
-        return 0
 
     def on_destroy(self, hwnd: int, msg: int, wparam: int, lparam: int) -> int:
         log_tray("Tray window destroying")
