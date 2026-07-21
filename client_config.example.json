@@ -5,6 +5,9 @@
   "poll_seconds": 2,
   "clipboard_busy_log_seconds": 30,
   "download_dir": "ClipAnywhereDownloads",
+  "cleanup_downloads_enabled": true,
+  "download_retention_days": 7,
+  "download_max_items": 20,
   "proxy": {
     "enabled": true,
     "url": "http://autoproxy:8088/",
