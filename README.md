@@ -167,6 +167,20 @@ Or double-click:
 start_client.bat
 ```
 
+To run hidden in the Windows system tray, double-click:
+
+```text
+start_client_tray.bat
+```
+
+The tray launcher writes client output to:
+
+```text
+clipanywhere_client.log
+```
+
+Right-click the tray icon to open the log or exit ClipAnywhere.
+
 The client window prints clipboard status messages such as:
 
 ```text
