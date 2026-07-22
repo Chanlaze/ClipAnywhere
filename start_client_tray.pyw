@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import threading
 import traceback
 from pathlib import Path
 
@@ -38,13 +39,17 @@ MENU_EXIT = 1002
 IMAGE_ICON = 1
 LR_LOADFROMFILE = 0x0010
 LR_DEFAULTSIZE = 0x0040
+NIF_INFO = 0x00000010
+NIIF_INFO = 0x00000001
 
 
 class TrayApp:
     def __init__(self) -> None:
-        self.process: subprocess.Popen[bytes] | None = None
+        self.process: subprocess.Popen[str] | None = None
         self.window_class = "ClipAnywhereTrayWindow"
         self.hwnd: int | None = None
+        self.icon: int | None = None
+        self.pending_download_source = ""
 
     def run(self) -> None:
         log_tray("ClipAnywhere tray launcher starting")
@@ -64,16 +69,49 @@ class TrayApp:
         ]
         log_tray("Starting client process:")
         log_tray(" ".join(command))
-        log = LOG_PATH.open("a", encoding="utf-8")
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         self.process = subprocess.Popen(
             command,
             cwd=str(PROJECT_ROOT),
-            stdout=log,
+            stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             creationflags=creationflags,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
         )
         log_tray(f"Client process started, pid={self.process.pid}")
+        threading.Thread(target=self.watch_client_output, daemon=True).start()
+
+    def watch_client_output(self) -> None:
+        if not self.process or not self.process.stdout:
+            return
+        with LOG_PATH.open("a", encoding="utf-8") as log:
+            for line in self.process.stdout:
+                log.write(line)
+                log.flush()
+                self.handle_client_status(line.strip())
+
+    def handle_client_status(self, line: str) -> None:
+        if not line:
+            return
+        if "Text being sync: downloading from " in line:
+            self.pending_download_source = line.rsplit(" from ", 1)[-1]
+        elif "Files/Folder being sync: downloading from " in line:
+            self.pending_download_source = line.rsplit(" from ", 1)[-1]
+        elif "Text sync uploaded" in line:
+            self.show_notification("ClipAnywhere sent", "Text clipboard sent to other PCs.")
+        elif "Files/Folder sync uploaded" in line:
+            self.show_notification("ClipAnywhere sent", "Files/folders sent to other PCs.")
+        elif "Text placed on clipboard:" in line:
+            source = self.pending_download_source or "another PC"
+            self.pending_download_source = ""
+            self.show_notification("ClipAnywhere received", f"Text received from {source}.")
+        elif "Files/Folder placed on clipboard" in line:
+            source = self.pending_download_source or "another PC"
+            self.pending_download_source = ""
+            self.show_notification("ClipAnywhere received", f"Files/folders received from {source}. Ready for Ctrl+V.")
 
     def create_window(self) -> None:
         message_map = {
@@ -103,16 +141,38 @@ class TrayApp:
         log_tray(f"Tray window created, hwnd={self.hwnd}")
 
     def add_tray_icon(self) -> None:
-        icon = self.load_tray_icon()
+        self.icon = self.load_tray_icon()
         nid = (
             self.hwnd,
             0,
             win32gui.NIF_ICON | win32gui.NIF_MESSAGE | win32gui.NIF_TIP,
             WM_TRAY,
-            icon,
+            self.icon,
             "ClipAnywhere - Ctrl+Alt+C to sync",
         )
         win32gui.Shell_NotifyIcon(win32gui.NIM_ADD, nid)
+
+    def show_notification(self, title: str, message: str) -> None:
+        if not self.hwnd:
+            return
+        try:
+            nid = (
+                self.hwnd,
+                0,
+                win32gui.NIF_ICON | win32gui.NIF_MESSAGE | win32gui.NIF_TIP | NIF_INFO,
+                WM_TRAY,
+                self.icon or self.load_tray_icon(),
+                "ClipAnywhere - Ctrl+Alt+C to sync",
+                message[:255],
+                5000,
+                title[:63],
+                NIIF_INFO,
+            )
+            win32gui.Shell_NotifyIcon(win32gui.NIM_MODIFY, nid)
+            log_tray(f"Tray notification shown: {title} - {message}")
+        except Exception:
+            log_tray("Tray notification failed:")
+            log_tray(traceback.format_exc())
 
     def load_tray_icon(self) -> int:
         if ICON_PATH.exists():
