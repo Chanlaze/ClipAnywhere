@@ -190,6 +190,8 @@ clipanywhere_client.log
 
 Right-click the tray icon to open the log or exit ClipAnywhere.
 
+When running from the tray, Windows notifications appear after ClipAnywhere sends clipboard data to other PCs or receives clipboard data from another PC.
+
 If the tray icon does not appear, first check the hidden tray icons arrow `^` near the Windows clock. Also check:
 
 ```text
