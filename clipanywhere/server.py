@@ -219,15 +219,16 @@ class ClipHandler(BaseHTTPRequestHandler):
         self.reply_json({"error": message}, status)
 
     def log_request(self, code: int | str = "-", size: int | str = "-") -> None:
-        if self.is_successful_healthcheck(code):
+        if self.is_quiet_successful_poll_request(code):
             return
         super().log_request(code, size)
 
     def log_message(self, fmt: str, *args: Any) -> None:
         print(f"{self.address_string()} - {fmt % args}")
 
-    def is_successful_healthcheck(self, code: int | str) -> bool:
-        return self.normalized_path(urlparse(self.path).path) == "/health" and str(code) == "200"
+    def is_quiet_successful_poll_request(self, code: int | str) -> bool:
+        path = self.normalized_path(urlparse(self.path).path)
+        return path in {"/health", "/latest"} and str(code) == "200"
 
 
 def main() -> None:
