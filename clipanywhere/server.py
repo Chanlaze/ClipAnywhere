@@ -219,6 +219,8 @@ class ClipHandler(BaseHTTPRequestHandler):
         self.reply_json({"error": message}, status)
 
     def log_message(self, fmt: str, *args: Any) -> None:
+        if self.normalized_path(urlparse(self.path).path) == "/health" and args and str(args[1]) == "200":
+            return
         print(f"{self.address_string()} - {fmt % args}")
 
 
