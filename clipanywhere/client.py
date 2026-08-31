@@ -313,7 +313,15 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="client_config.json")
     args = parser.parse_args()
-    Client(load_json(args.config)).run()
+    config_path = Path(args.config)
+    if not config_path.exists():
+        print(f"Config file not found: {config_path}", flush=True)
+        print("Copy one of these example files to client_config.json, then edit server_url, token, and device_name:", flush=True)
+        print("  client_config.example.json        office PC with proxy", flush=True)
+        print("  client_config.direct.example.json PC without proxy", flush=True)
+        print("  client_config.macos.example.json  macOS", flush=True)
+        raise SystemExit(2)
+    Client(load_json(config_path)).run()
 
 
 if __name__ == "__main__":
