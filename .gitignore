@@ -11,4 +11,4 @@ server_config.json
 client_config.json
 clipanywhere_data/
 ClipAnywhereDownloads/
-
+clipanywhere*.log

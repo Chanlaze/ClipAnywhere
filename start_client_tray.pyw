@@ -5,6 +5,7 @@ import subprocess
 import sys
 import threading
 import traceback
+import ctypes
 from pathlib import Path
 
 
@@ -15,6 +16,15 @@ LOG_PATH = PROJECT_ROOT / "clipanywhere_client.log"
 TRAY_LOG_PATH = PROJECT_ROOT / "clipanywhere_tray.log"
 CONFIG_PATH = PROJECT_ROOT / "client_config.json"
 ICON_PATH = PROJECT_ROOT / "assets" / "clipanywhere.ico"
+
+
+def hide_console_window() -> None:
+    """Keep the tray launcher invisible when started with python.exe."""
+    if sys.platform != "win32":
+        return
+    hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+    if hwnd:
+        ctypes.windll.user32.ShowWindow(hwnd, 0)
 
 
 def log_tray(message: str) -> None:
@@ -275,6 +285,7 @@ if __name__ == "__main__":
     try:
         if sys.platform != "win32":
             raise SystemExit("Tray launcher is Windows-only")
+        hide_console_window()
         TrayApp().run()
     except Exception:
         log_tray("Tray launcher crashed:")
