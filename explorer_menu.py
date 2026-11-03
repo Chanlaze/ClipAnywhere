@@ -26,14 +26,16 @@ def update_menu(remove: bool = False) -> None:
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path) as key:
             winreg.SetValueEx(key, "", 0, winreg.REG_SZ, "Send to other...")
             winreg.SetValueEx(key, "Icon", 0, winreg.REG_SZ, str(ROOT / "assets" / "clipanywhere.ico"))
-            # One invocation avoids separate uploads replacing each other in /latest.
-            winreg.SetValueEx(key, "MultiSelectModel", 0, winreg.REG_SZ, "Single")
+            winreg.SetValueEx(key, "MultiSelectModel", 0, winreg.REG_SZ, "Document")
         command = subprocess.list2cmdline([
-            sys.executable, str(ROOT / "send_to_other.py"),
-            "--config", str(ROOT / "client_config.json"), "--",
+            str(Path(sys.executable).with_name("pythonw.exe")), str(ROOT / "send_to_other_hidden.pyw"),
+            "--explorer", "--config", str(ROOT / "client_config.json"), "--",
         ]) + ' "%1"'
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path + r"\command") as key:
             winreg.SetValueEx(key, "", 0, winreg.REG_SZ, command)
+
+    import ctypes
+    ctypes.windll.shell32.SHChangeNotify(0x08000000, 0, None, None)
 
 
 if __name__ == "__main__":

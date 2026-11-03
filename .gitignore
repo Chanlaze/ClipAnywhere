@@ -12,3 +12,4 @@ client_config.json
 clipanywhere_data/
 ClipAnywhereDownloads/
 clipanywhere*.log
+.clipanywhere_sender/

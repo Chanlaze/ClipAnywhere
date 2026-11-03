@@ -6,14 +6,17 @@ Run `install_explorer_menu.bat` once on each Windows PC. Right-click a file or
 folder and choose **Send to other...** (Windows 11: **Show more options**).
 The command uses `client_config.json` beside the scripts and sends the selection
 to all connected ClipAnywhere clients. Folders include nested files and empty
-directories. A confirmation appears after the NAS accepts the upload; errors
-appear in a dialog. The local clipboard is unchanged, and the sender's tray
-client does not need to be running.
+directories. Sending runs silently with no console or popup; progress and errors
+are recorded in `clipanywhere_send.log`. The local clipboard is unchanged, and
+the sender's tray client does not need to be running.
 
-The Explorer menu supports one selected file or folder at a time. To send several
-items together, place them in a folder and send that folder. Other PCs must have
-their ClipAnywhere client running to receive it. Run `remove_explorer_menu.bat`
-to remove the menu. If this installation moves, run the installer again.
+Select multiple files/folders and use the same menu to send them together.
+Explorer invokes the sender for each item; the sender collects selections until
+two seconds after the last invocation, then uploads one archive. Windows may
+hide document actions for selections larger than 15 items; send the containing
+folder in that case. Other PCs must have their ClipAnywhere client running to
+receive it. Run `remove_explorer_menu.bat` to remove the menu. After updating or
+moving this installation, run the installer again.
 
 Python clipboard sync for several PCs, including text and copied files.
 
