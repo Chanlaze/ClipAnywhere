@@ -13,6 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 PYTHONW = Path(r"C:\python\pythonw.exe")
 PYTHON = Path(r"C:\python\python.exe")
 LOG_PATH = PROJECT_ROOT / "clipanywhere_client.log"
+EXPLORER_LOG_PATH = PROJECT_ROOT / "clipanywhere_send.log"
 TRAY_LOG_PATH = PROJECT_ROOT / "clipanywhere_tray.log"
 CONFIG_PATH = PROJECT_ROOT / "client_config.json"
 ICON_PATH = PROJECT_ROOT / "assets" / "clipanywhere.ico"
@@ -60,12 +61,16 @@ class TrayApp:
         self.hwnd: int | None = None
         self.icon: int | None = None
         self.pending_download_source = ""
+        self.stop_event = threading.Event()
+        self.explorer_log_offset = EXPLORER_LOG_PATH.stat().st_size if EXPLORER_LOG_PATH.exists() else 0
+        self.explorer_log_pending = b""
 
     def run(self) -> None:
         log_tray("ClipAnywhere tray launcher starting")
         self.start_client()
         self.create_window()
         self.add_tray_icon()
+        threading.Thread(target=self.watch_explorer_output, daemon=True).start()
         log_tray("Tray icon added. If you cannot see it, check the hidden tray icons arrow (^).")
         win32gui.PumpMessages()
 
@@ -122,6 +127,36 @@ class TrayApp:
             source = self.pending_download_source or "another PC"
             self.pending_download_source = ""
             self.show_notification("ClipAnywhere received", f"Files/folders received from {source}. Ready for Ctrl+V.")
+
+    def watch_explorer_output(self) -> None:
+        while not self.stop_event.wait(0.5):
+            try:
+                self.poll_explorer_output()
+            except OSError as exc:
+                log_tray(f"Explorer status read failed: {exc}")
+
+    def poll_explorer_output(self) -> None:
+        if not EXPLORER_LOG_PATH.exists():
+            self.explorer_log_offset = 0
+            self.explorer_log_pending = b""
+            return
+        with EXPLORER_LOG_PATH.open("rb") as source:
+            if os.fstat(source.fileno()).st_size < self.explorer_log_offset:
+                self.explorer_log_offset = 0
+                self.explorer_log_pending = b""
+            source.seek(self.explorer_log_offset)
+            data = source.read()
+            self.explorer_log_offset = source.tell()
+        if not data:
+            return
+        lines = (self.explorer_log_pending + data).split(b"\n")
+        self.explorer_log_pending = lines.pop()
+        with LOG_PATH.open("a", encoding="utf-8") as log:
+            for raw in lines:
+                line = raw.decode("utf-8", errors="replace").rstrip("\r")
+                log.write(line + "\n")
+                log.flush()
+                self.handle_client_status(line)
 
     def create_window(self) -> None:
         message_map = {
@@ -262,6 +297,7 @@ class TrayApp:
 
     def on_destroy(self, hwnd: int, msg: int, wparam: int, lparam: int) -> int:
         log_tray("Tray window destroying")
+        self.stop_event.set()
         self.remove_tray_icon()
         self.stop_client()
         win32gui.PostQuitMessage(0)

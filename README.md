@@ -6,9 +6,12 @@ Run `install_explorer_menu.bat` once on each Windows PC. Right-click a file or
 folder and choose **Send to other...** (Windows 11: **Show more options**).
 The command uses `client_config.json` beside the scripts and sends the selection
 to all connected ClipAnywhere clients. Folders include nested files and empty
-directories. Sending runs silently with no console or popup; progress and errors
-are recorded in `clipanywhere_send.log`. The local clipboard is unchanged, and
-the sender's tray client does not need to be running.
+directories. Sending runs without a console or dialog. When the tray app is
+running, a successful Explorer upload shows the same **ClipAnywhere sent** tray
+notification as Ctrl+Alt+C. Progress and errors are recorded in
+`clipanywhere_send.log` and mirrored into the client log while the tray app is
+running. The local clipboard is unchanged. Sending also works without the tray
+app, but no tray notification is shown in that case.
 
 Select multiple files/folders and use the same menu to send them together.
 Explorer invokes the sender for each item; the sender collects selections until
