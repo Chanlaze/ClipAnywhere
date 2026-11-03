@@ -1,4 +1,6 @@
 import concurrent.futures
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,6 +10,15 @@ import send_to_other
 
 
 class ExplorerSendTests(unittest.TestCase):
+    def test_sender_imports_project_with_isolated_python(self):
+        result = subprocess.run(
+            [sys.executable, "-I", str(Path(send_to_other.__file__).resolve()), "--help"],
+            cwd=Path(sys.executable).parent,
+            capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--explorer", result.stdout)
+
     def test_parallel_explorer_invocations_form_one_batch(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

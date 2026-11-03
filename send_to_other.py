@@ -4,16 +4,19 @@ from __future__ import annotations
 import argparse
 import contextlib
 import sqlite3
+import sys
 import time
 import traceback
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
 
 from clipanywhere.archive import zip_paths
 from clipanywhere.client import Client, describe_paths
 from clipanywhere.common import load_json
 
 
-ROOT = Path(__file__).resolve().parent
 QUEUE_DIR = ROOT / ".clipanywhere_sender"
 LOG_PATH = ROOT / "clipanywhere_send.log"
 
